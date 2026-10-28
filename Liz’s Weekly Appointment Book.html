@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Liz’s Weekly Appointment Book</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f1f6;--surface:#fff;--ink:#241a33;--muted:#6d6580;--line:#e1dce9;--line2:#efebf4;
+  --accent:#4b2a7b;--accent-ink:#fff;--today:#efe8fa;--danger:#b3261e;
+  --blk-bg-s:60%;--blk-bg-l:90%;--blk-bd-l:42%;--blk-ink:#241a33;
+  color-scheme:light;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#17121f;--surface:#211a2d;--ink:#efeaf7;--muted:#a79fb8;--line:#3a3149;--line2:#2c2439;
+  --accent:#b99bf0;--accent-ink:#1b1228;--today:#2d2340;--danger:#ff8a80;
+  --blk-bg-s:35%;--blk-bg-l:26%;--blk-bd-l:62%;--blk-ink:#f3eefb;color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#17121f;--surface:#211a2d;--ink:#efeaf7;--muted:#a79fb8;--line:#3a3149;--line2:#2c2439;
+  --accent:#b99bf0;--accent-ink:#1b1228;--today:#2d2340;--danger:#ff8a80;
+  --blk-bg-s:35%;--blk-bg-l:26%;--blk-bd-l:62%;--blk-ink:#f3eefb;color-scheme:dark;}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Figtree,system-ui,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}
+h1{font:700 26px/1.1 "Bricolage Grotesque",Georgia,serif;margin:0;letter-spacing:-.01em}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.nav{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,select,input,textarea{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn:focus-visible,.chip:focus-visible,.appt:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.range{font:600 17px "Bricolage Grotesque",Georgia,serif;min-width:200px;text-align:center}
+.chips{display:none;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:500}
+.chip i{width:10px;height:10px;border-radius:50%;background:hsl(var(--h) 60% 50%)}
+.chip[aria-pressed="false"]{opacity:.45}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.cal{display:grid;grid-template-columns:76px repeat(7,minmax(120px,1fr));min-width:920px}
+.dh{padding:8px 10px;border-bottom:1px solid var(--line);border-left:1px solid var(--line2);font-weight:600}
+.dh small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.dh.today{background:var(--today)}
+.tcol{position:relative}
+.tcol span{position:absolute;right:8px;white-space:nowrap;font-size:11px;color:var(--muted);transform:translateY(-7px)}
+.day{position:relative;border-left:1px solid var(--line2);cursor:cell;
+  background-image:repeating-linear-gradient(to bottom,var(--line) 0 1px,transparent 1px calc(var(--sh)*2)),repeating-linear-gradient(to bottom,var(--line2) 0 1px,transparent 1px var(--sh))}
+.day.today{background-color:var(--today)}
+.appt{position:absolute;border:0;border-left:4px solid hsl(var(--h) 60% var(--blk-bd-l));border-radius:6px;
+  background:hsl(var(--h) var(--blk-bg-s) var(--blk-bg-l));color:var(--blk-ink);text-align:left;padding:3px 6px;
+  overflow:hidden;cursor:pointer;font-size:12px;line-height:1.25}
+.appt b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appt span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
+.appt.Completed{opacity:.55}
+.appt.NoShow b{text-decoration:line-through}
+.appt.Checked{box-shadow:0 0 0 2px hsl(var(--h) 60% var(--blk-bd-l)) inset}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(440px,calc(100vw - 24px))}
+dialog::backdrop{background:rgba(20,10,35,.5)}
+.dlg{padding:18px;display:grid;gap:12px}
+.dlg h2{margin:0;font:700 20px "Bricolage Grotesque",Georgia,serif}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+input,select,textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;width:100%}
+.err{color:var(--danger);font-size:13px;min-height:18px}
+.actions{display:flex;gap:8px;justify-content:flex-end}
+.actions .sp{margin-right:auto}
+.empty{color:var(--muted);font-size:13px;margin-top:10px}
+.cbody{max-height:52vh;overflow:auto;display:grid;gap:8px;align-content:start}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--bg);text-align:left;width:100%;color:var(--ink)}
+button.item{cursor:pointer;font:inherit}
+button.item:hover{border-color:var(--accent)}
+.item small{display:block;color:var(--muted);font-size:12px}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.stats4 div{border:1px solid var(--line);border-radius:10px;padding:8px 4px;font-weight:600}
+.stats4 small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.badge{background:var(--danger);color:#fff;border-radius:999px;font-size:11px;padding:1px 6px;margin-left:6px}
+.sec{font-weight:600;margin-top:4px}
+h1{color:#1f7a4d}
+.tcol span{color:#c2570a;font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tcol span{color:#ffa94d}}
+:root[data-theme="dark"] .tcol span{color:#ffa94d}
+.foot{text-align:right;color:var(--muted);font-size:12px;margin:16px 0 0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) h1{color:#6fd19a}}
+:root[data-theme="dark"] h1{color:#6fd19a}
+.chk{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px}.chk input{width:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Liz’s Weekly Appointment Book</h1>
+      <div class="sub" id="stats"></div>
+    </div>
+    <div class="nav">
+      <button class="btn" id="prev" aria-label="Previous week">&lsaquo;</button>
+      <div class="range" id="range"></div>
+      <button class="btn" id="next" aria-label="Next week">&rsaquo;</button>
+      <button class="btn" id="todayBtn">Today</button>
+      <button class="btn" id="clBtn">Clients</button>
+      <button class="btn" id="remBtn">Reminders</button>
+      <button class="btn" id="impBtn">Import texts</button>
+      <button class="btn primary" id="newBtn">New booking</button>
+    </div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="scroll"><div class="cal" id="cal"></div></div>
+  <p class="empty">Select an empty time slot to book it, or select an appointment to edit it. Bookings save in this browser.</p>
+  <footer class="foot">Copyright © 2026 Monkey Labs Studio. All rights reserved.</footer>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg">
+    <h2 id="dTitle">New booking</h2>
+    <div class="row">
+      <label>Client name<input id="fClient" list="clientNames" autocomplete="off"><datalist id="clientNames"></datalist></label>
+      <label>Phone<input id="fPhone" inputmode="tel" autocomplete="off"></label>
+    </div>
+    <div class="row">
+      <label>Service<select id="fSvc"></select></label>
+      <label>Stylist<select id="fSty"></select></label>
+    </div>
+    <div class="row">
+      <label>Date<input type="date" id="fDate"></label>
+      <label>Start time<select id="fTime"></select></label>
+    </div>
+    <div class="row">
+      <label>Status<select id="fStatus"></select></label>
+      <label>Length<input id="fLen" readonly></label>
+    </div>
+    <label>Notes<textarea id="fNotes" rows="2"></textarea></label>
+    <label class="chk" id="fTextL"><input type="checkbox" id="fText" checked> Text a confirmation to the client after saving</label><div class="err" id="fErr" role="alert"></div>
+    <div class="actions">
+      <button class="btn danger sp" id="bDel">Delete booking</button>
+      <button class="btn" id="bMsg">Message client</button>
+      <button class="btn" id="bCancel">Cancel</button>
+      <button class="btn primary" id="bSave">Save booking</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgC"><div class="dlg">
+  <h2>Clients</h2>
+  <input id="cSearch" placeholder="Search by name or phone">
+  <div id="cBody" class="cbody"></div>
+  <div class="actions"><button class="btn primary sp" id="cNew">New client</button><button class="btn" id="cClose">Close</button></div>
+</div></dialog>
+
+<dialog id="dlgR"><div class="dlg">
+  <h2>Reminders</h2>
+  <div class="sub">Booked appointments in the next 48 hours.</div>
+  <div id="rBody" class="cbody"></div>
+  <div class="actions"><button class="btn" id="rClose">Close</button></div>
+</div></dialog>
+
+<dialog id="dlgS"><div class="dlg">
+  <h2>Send a text</h2>
+  <div class="row">
+    <label>Mobile number<input id="sTo" inputmode="tel"></label>
+    <label>Template<select id="sTpl"></select></label>
+  </div>
+  <label>Message<textarea id="sMsg" rows="5"></textarea></label>
+  <div class="sub" id="sCount"></div>
+  <div class="err" id="sErr" role="alert"></div>
+  <div class="actions">
+    <button class="btn sp" id="sCopy">Copy</button>
+    <button class="btn" id="sCancel">Cancel</button>
+    <button class="btn primary" id="sSend">Open in Messages</button>
+  </div>
+</div></dialog>
+
+<dialog id="dlgN"><div class="dlg">
+  <h2>New client</h2>
+  <label>Name<input id="nName" autocomplete="off"></label>
+  <label>Mobile number<input id="nPhone" inputmode="tel"></label>
+  <label>Notes<textarea id="nNotes" rows="2"></textarea></label>
+  <div class="err" id="nErr" role="alert"></div>
+  <div class="actions"><button class="btn" id="nCancel">Cancel</button><button class="btn primary" id="nSave">Save client</button></div>
+</div></dialog>
+
+<dialog id="dlgI"><div class="dlg">
+  <h2>Import texts</h2>
+  <div class="sub">Paste messages, one per line as “number or name: message”, or choose a file exported from SMS Backup &amp; Restore (.xml) or a .txt or .csv file (number, date, message). Imported texts stay on this device.</div>
+  <textarea id="iText" rows="5" placeholder="555-0141: Yes, confirmed for Tuesday&#10;Hana Kim (555-0118): Can we reschedule?"></textarea>
+  <input type="file" id="iFile" accept=".xml,.txt,.csv,text/plain,text/xml,text/csv">
+  <div class="actions"><button class="btn" id="iParse">Preview</button></div>
+  <div id="iBody" class="cbody"></div>
+  <div class="err" id="iErr" role="alert"></div>
+  <div class="actions"><button class="btn" id="iClose">Close</button><button class="btn primary" id="iGo">Import selected</button></div>
+</div></dialog>
+
+<script>
+(function(){
+var SH=28,OPEN=9,CLOSE=19,SLOTS=(CLOSE-OPEN)*2;
+document.documentElement.style.setProperty('--sh',SH+'px');
+var SERVICES=[
+  {n:'Cut & style',d:60,p:65},{n:'Colour, full',d:120,p:140},{n:'Highlights',d:150,p:180},
+  {n:'Blow-dry',d:30,p:40},{n:'Beard trim',d:30,p:25},{n:'Deep treatment',d:45,p:55}];
+var STYLISTS=[{id:'l',n:'Liz',h:285}];
+var STATUSES=[['Booked','Booked'],['Checked','Checked in'],['Completed','Completed'],['NoShow','No-show']];
+var KEY='weekly-appointment-book-v1';
+var $=function(id){return document.getElementById(id)};
+var appts=[],filter={},editing=null,monday=mondayOf(new Date());
+STYLISTS.forEach(function(s){filter[s.id]=true});
+
+function pad(n){return (n<10?'0':'')+n}
+function ds(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parse(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function mondayOf(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function fmt(m){var h=Math.floor(m/60),mm=m%60,ap=h>=12?'pm':'am';h=h%12||12;return h+(mm?':'+pad(mm):':00')+' '+ap}
+function sty(id){return STYLISTS.filter(function(s){return s.id===id})[0]||STYLISTS[0]}
+function svc(n){return SERVICES.filter(function(s){return s.n===n})[0]||SERVICES[0]}
+function uid(){return 'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function load(){
+  try{var r=localStorage.getItem(KEY);if(r){appts=JSON.parse(r);appts.forEach(function(a){a.stylist='l'});return}}catch(e){}
+  var m=mondayOf(new Date());
+  function mk(day,t,c,s,st,ph,status,notes){var v=svc(s);return {id:uid(),date:ds(addDays(m,day)),start:t*60,dur:v.d,client:c,phone:ph||'',svc:s,stylist:st,notes:notes||'',status:status||'Booked'}}
+  appts=[mk(0,9.5,'Lena Ortiz','Cut & style','l','555-0141','Completed'),mk(0,11,'Marcus Bell','Beard trim','l','555-0172','Completed'),
+    mk(1,9,'Hana Kim','Colour, full','l','555-0118','Checked','Wants to go darker'),mk(1,11,'Tom Reyes','Cut & style','l','555-0190'),
+    mk(1,12,'Sofia Lang','Blow-dry','l','555-0107'),mk(1,13,'Ravi Patel','Cut & style','l','555-0155'),
+    mk(2,9.5,'Dana Cruz','Highlights','l','555-0133','Booked','Patch test done'),mk(2,14,'Ella Moss','Deep treatment','l','555-0124'),
+    mk(3,12,'Chris Wu','Beard trim','l','555-0166'),mk(3,15,'Maya Singh','Colour, full','l','555-0149'),
+    mk(4,10,'Noah Fox','Cut & style','l','555-0181'),mk(4,16,'Ivy Chen','Blow-dry','l','555-0112'),
+    mk(5,9,'Grace Hall','Highlights','l','555-0137'),mk(5,11.5,'Omar Ali','Cut & style','l','555-0128')];
+  save();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(appts))}catch(e){}}
+
+function render(){
+  var days=[0,1,2,3,4,5,6].map(function(i){return addDays(monday,i)});
+  var f=days[0],l=days[6];
+  var mo={month:'short'};
+  $('range').textContent=f.getDate()+' '+f.toLocaleDateString('en-US',mo)+' – '+l.getDate()+' '+l.toLocaleDateString('en-US',mo)+' '+l.getFullYear();
+  var wk=appts.filter(function(a){return a.date>=ds(f)&&a.date<=ds(l)&&filter[a.stylist]});
+  var rev=wk.reduce(function(t,a){return a.status==='NoShow'?t:t+svc(a.svc).p},0);
+  $('stats').textContent=wk.length+' appointment'+(wk.length===1?'':'s')+' this week · $'+rev+' expected';
+  var today=ds(new Date()),h='<div class="dh"></div>';
+  days.forEach(function(d){
+    var n=wk.filter(function(a){return a.date===ds(d)}).length;
+    h+='<div class="dh'+(ds(d)===today?' today':'')+'">'+d.toLocaleDateString('en-US',{weekday:'short'})+' '+d.getDate()+'<small>'+n+' booked</small></div>';
+  });
+  h+='<div class="tcol" style="height:'+(SLOTS*SH)+'px">';
+  for(var i=0;i<SLOTS;i+=2)h+='<span style="top:'+(i*SH)+'px">'+fmt((OPEN*60)+i*30)+'</span>';
+  h+='</div>';
+  days.forEach(function(d){
+    var key=ds(d),list=wk.filter(function(a){return a.date===key}).sort(function(a,b){return a.start-b.start});
+    var place=lanes(list);
+    h+='<div class="day'+(key===today?' today':'')+'" data-date="'+key+'" style="height:'+(SLOTS*SH)+'px">';
+    list.forEach(function(a){
+      var p=place[a.id],s=sty(a.stylist),top=(a.start-OPEN*60)/30*SH,ht=a.dur/30*SH-2;
+      h+='<button class="appt '+a.status+'" data-id="'+a.id+'" style="--h:'+s.h+';top:'+top+'px;height:'+ht+'px;left:calc('+(p.lane/p.n*100)+'% + 2px);width:calc('+(100/p.n)+'% - 4px)" title="'+esc(a.client+' · '+a.svc+' · '+s.n)+'">'
+        +'<b>'+esc(a.client)+'</b><span>'+fmt(a.start)+' · '+esc(a.svc)+'</span><span>'+s.n+(a.confirmed?' · confirmed':a.reminded?' · reminded':'')+'</span></button>';
+    });
+    h+='</div>';
+  });
+  $('cal').innerHTML=h;
+}
+function lanes(list){
+  var out={},cluster=[],end=0;
+  function flush(){var n=0;cluster.forEach(function(a){n=Math.max(n,out[a.id].lane+1)});cluster.forEach(function(a){out[a.id].n=n});cluster=[]}
+  var laneEnds=[];
+  list.forEach(function(a){
+    if(a.start>=end){flush();laneEnds=[]}
+    var k=0;while(laneEnds[k]>a.start)k++;
+    laneEnds[k]=a.start+a.dur;out[a.id]={lane:k,n:1};cluster.push(a);end=Math.max(end,a.start+a.dur);
+  });
+  flush();return out;
+}
+
+function fillSelects(){
+  $('fSvc').innerHTML=SERVICES.map(function(s){return '<option>'+s.n+'</option>'}).join('');
+  $('fSty').innerHTML=STYLISTS.map(function(s){return '<option value="'+s.id+'">'+s.n+'</option>'}).join('');
+  $('fStatus').innerHTML=STATUSES.map(function(s){return '<option value="'+s[0]+'">'+s[1]+'</option>'}).join('');
+  var t='';for(var m=OPEN*60;m<CLOSE*60;m+=30)t+='<option value="'+m+'">'+fmt(m)+'</option>';
+  $('fTime').innerHTML=t;
+  $('chips').innerHTML=STYLISTS.map(function(s){return '<button class="chip" data-s="'+s.id+'" aria-pressed="true" style="--h:'+s.h+'"><i></i>'+s.n+'</button>'}).join('');
+}
+function updLen(){var d=svc($('fSvc').value).d;$('fLen').value=(d>=60?Math.floor(d/60)+' h ':'')+(d%60?d%60+' min':'')}
+
+function openDlg(a,date,start){
+  editing=a?a.id:null;$('fErr').textContent='';
+  $('dTitle').textContent=a?'Edit booking':'New booking';
+  $('bDel').style.display=a?'':'none';$('bMsg').style.display=a?'':'none';$('fTextL').style.display=a?'none':'';$('fText').checked=!a;$('clientNames').innerHTML=clientList().map(function(c){return '<option value="'+esc(c.name)+'">'}).join('');
+  var firstS=STYLISTS.filter(function(s){return filter[s.id]})[0]||STYLISTS[0];
+  $('fClient').value=a?a.client:'';$('fPhone').value=a?a.phone:'';
+  $('fSvc').value=a?a.svc:SERVICES[0].n;$('fSty').value=a?a.stylist:firstS.id;
+  $('fDate').value=a?a.date:(date||ds(new Date()));
+  $('fTime').value=a?a.start:(start||OPEN*60+30);
+  $('fStatus').value=a?a.status:'Booked';$('fNotes').value=a?a.notes:'';
+  updLen();$('dlg').showModal();$('fClient').focus();
+}
+function submit(){
+  var client=$('fClient').value.trim(),date=$('fDate').value,start=+$('fTime').value,v=svc($('fSvc').value),st=$('fSty').value;
+  var err='';
+  if(!client)err='Enter the client’s name.';
+  else if(!date)err='Choose a date.';
+  else if(start+v.d>CLOSE*60)err='This service would run past closing at '+fmt(CLOSE*60)+'. Choose an earlier start.';
+  else{
+    var c=appts.filter(function(a){return a.id!==editing&&a.date===date&&a.stylist===st&&a.status!=='NoShow'&&a.start<start+v.d&&start<a.start+a.dur})[0];
+    if(c)err=sty(st).n+' already has '+c.client+' from '+fmt(c.start)+' to '+fmt(c.start+c.dur)+'. Pick another time or stylist.';
+  }
+  if(err){$('fErr').textContent=err;return}
+  var rec={id:editing||uid(),date:date,start:start,dur:v.d,client:client,phone:$('fPhone').value.trim(),svc:v.n,stylist:st,notes:$('fNotes').value.trim(),status:$('fStatus').value};
+  var isNew=!editing;if(editing){appts=appts.map(function(a){return a.id===editing?rec:a})}else appts.push(rec);
+  save();monday=mondayOf(parse(date));$('dlg').close();render();if(isNew&&$('fText').checked&&rec.phone)openSms(rec.client,rec.phone,rec,'Confirmation');
+}
+
+$('prev').onclick=function(){monday=addDays(monday,-7);render()};
+$('next').onclick=function(){monday=addDays(monday,7);render()};
+$('todayBtn').onclick=function(){monday=mondayOf(new Date());render()};
+$('newBtn').onclick=function(){openDlg(null)};
+$('fSvc').onchange=updLen;
+$('bCancel').onclick=function(){$('dlg').close()};
+$('bSave').onclick=submit;
+$('bDel').onclick=function(){if(editing){appts=appts.filter(function(a){return a.id!==editing});save();$('dlg').close();render()}};
+$('chips').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;var id=b.dataset.s;filter[id]=!filter[id];b.setAttribute('aria-pressed',filter[id]);render()};
+$('cal').onclick=function(e){
+  var ap=e.target.closest('.appt');
+  if(ap){var a=appts.filter(function(x){return x.id===ap.dataset.id})[0];if(a)openDlg(a);return}
+  var day=e.target.closest('.day');if(!day)return;
+  var y=e.clientY-day.getBoundingClientRect().top,slot=Math.max(0,Math.min(SLOTS-1,Math.floor(y/SH)));
+  openDlg(null,day.dataset.date,OPEN*60+slot*30);
+};
+var MKEY='weekly-appointment-book-msgs-v1',XKEY='weekly-appointment-book-clients-v1',msgs=[],extras=[],selC=null,sms=null,delArm=false;
+var TPLS=['Reminder','Confirmation','Thank you','Rebook','Custom'];
+function saveX(){try{localStorage.setItem(XKEY,JSON.stringify(extras))}catch(e){}}
+function delClient(c){appts=appts.filter(function(a){return ckey(a)!==c.key});extras=extras.filter(function(x){return ckey({client:x.name,phone:x.phone})!==c.key});msgs=msgs.filter(function(m){return ckey({client:m.client,phone:m.phone})!==c.key});save();saveMsgs();saveX()}
+function loadMsgs(){try{extras=JSON.parse(localStorage.getItem(XKEY)||'[]')}catch(e){extras=[]}try{msgs=JSON.parse(localStorage.getItem(MKEY)||'[]')}catch(e){msgs=[]}}
+function saveMsgs(){try{localStorage.setItem(MKEY,JSON.stringify(msgs))}catch(e){}}
+function ckey(a){var d=(a.phone||'').replace(/\D/g,'');return d||a.client.toLowerCase()}
+function ts(a){return parse(a.date).getTime()+a.start*60000}
+function fd(s){return parse(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+function sd(s){return parse(s).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+function ago(t){var m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago'}
+function dayLabel(a){return a.date===ds(new Date())?'Today':a.date===ds(addDays(new Date(),1))?'Tomorrow':parse(a.date).toLocaleDateString('en-US',{weekday:'long'})}
+function upcoming(h){var n=Date.now();return appts.filter(function(a){return a.status==='Booked'&&ts(a)>=n&&ts(a)<=n+h*3600000}).sort(function(x,y){return ts(x)-ts(y)})}
+function clientList(){var m={};extras.forEach(function(x){var k=ckey({client:x.name,phone:x.phone});m[k]={key:k,name:x.name,phone:x.phone,notes:x.notes,visits:[]}});appts.forEach(function(a){var k=ckey(a),c=m[k]||(m[k]={key:k,visits:[]});c.name=a.client;if(a.phone||!c.phone)c.phone=a.phone;c.visits.push(a)});return Object.keys(m).map(function(k){return m[k]}).sort(function(x,y){return x.name.localeCompare(y.name)})}
+function stLabel(s){return STATUSES.filter(function(x){return x[0]===s})[0][1]}
+function tpl(k,a,name){
+  var f=name.split(' ')[0],w=a?parse(a.date).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})+' at '+fmt(a.start):'',s=a?a.svc+' with '+sty(a.stylist).n:'',sig=' - Liz';
+  if(k==='Reminder')return a?'Hi '+f+', a reminder of your '+s+' on '+w+'. Reply to confirm, or let us know if you need to reschedule.'+sig:'Hi '+f+', a reminder of your upcoming appointment. Reply to confirm.'+sig;
+  if(k==='Confirmation')return a?'Hi '+f+', you are booked for '+s+' on '+w+'. See you then!'+sig:'Hi '+f+', your appointment is confirmed. See you soon!'+sig;
+  if(k==='Thank you')return 'Hi '+f+', thanks for visiting'+(a?' for your '+a.svc:'')+'. We hope you love the result!'+sig;
+  if(k==='Rebook')return 'Hi '+f+', it has been a while since your last visit. Ready to book your next appointment?'+sig;
+  return 'Hi '+f+', ';
+}
+function cnt(){var n=$('sMsg').value.length,g=n<=160?1:Math.ceil(n/153);$('sCount').textContent=n+' characters · '+g+' text'+(g>1?'s':'')}
+function openSms(name,phone,a,k){
+  if(!a){a=appts.filter(function(x){return ckey(x)===ckey({client:name,phone:phone})&&x.status==='Booked'&&ts(x)>=Date.now()}).sort(function(x,y){return ts(x)-ts(y)})[0]||null}
+  sms={name:name,a:a};k=k||(a?'Reminder':'Custom');
+  $('sTo').value=phone||'';$('sTpl').value=k;$('sMsg').value=tpl(k,a,name);$('sErr').textContent='';cnt();
+  ['dlg','dlgC','dlgR'].forEach(function(i){if($(i).open)$(i).close()});
+  $('dlgS').showModal();$('sMsg').focus();
+}
+function renderC(){
+  var q=$('cSearch').value.trim().toLowerCase(),all=clientList(),now=Date.now(),h='';
+  var c=selC&&all.filter(function(x){return x.key===selC})[0];
+  if(c){
+    var vs=c.visits.slice().sort(function(x,y){return ts(y)-ts(x)}),done=vs.filter(function(a){return a.status==='Completed'});
+    var spent=done.reduce(function(t,a){return t+svc(a.svc).p},0);
+    var nx=vs.filter(function(a){return a.status==='Booked'&&ts(a)>=now}).pop(),last=vs.filter(function(a){return ts(a)<now&&a.status!=='NoShow'})[0];
+    var ms=msgs.filter(function(m){return ckey({client:m.client,phone:m.phone})===c.key});
+    h='<button class="btn" id="cBack">‹ All clients</button><div><b style="font-size:17px">'+esc(c.name)+'</b><div class="sub">'+esc(c.phone||'No phone on file')+'</div>'+(c.notes?'<div class="sub">'+esc(c.notes)+'</div>':'')+'</div>'
+     +'<div class="stats4"><div>'+done.length+'<small>visits</small></div><div>$'+spent+'<small>spent</small></div><div>'+(last?sd(last.date):'–')+'<small>last visit</small></div><div>'+(nx?sd(nx.date):'–')+'<small>next visit</small></div></div>'
+     +'<div class="actions"><button class="btn danger sp" id="cDel">'+(delArm?'Select again to delete client and '+c.visits.length+' booking(s)':'Delete client')+'</button><button class="btn" id="cBook">Book again</button><button class="btn primary" id="cText">Send text</button></div>'
+     +'<div class="sec">Visit history</div>'
+     +vs.map(function(a){return '<div class="item"><div><b>'+fd(a.date)+'</b> · '+fmt(a.start)+'<small>'+esc(a.svc)+' · '+sty(a.stylist).n+(a.notes?' · '+esc(a.notes):'')+'</small></div><small>'+stLabel(a.status)+' · $'+svc(a.svc).p+'</small></div>'}).join('')
+     +'<div class="sec">Messages</div>'
+     +(ms.length?ms.map(function(m){return '<div class="item"><div><b>'+esc(m.tpl)+'</b><small>'+esc(m.text)+'</small></div><small>'+ago(m.t)+'</small></div>'}).join(''):'<div class="empty">No messages yet.</div>');
+  }else{
+    var l=all.filter(function(x){return !q||x.name.toLowerCase().indexOf(q)>-1||(x.phone||'').replace(/\D/g,'').indexOf(q.replace(/\D/g,'')||'§')>-1});
+    h=l.length?l.map(function(x){return '<button class="item" data-k="'+esc(x.key)+'"><div><b>'+esc(x.name)+'</b><small>'+esc(x.phone||'No phone')+'</small></div><small>'+x.visits.length+' booking'+(x.visits.length===1?'':'s')+'</small></button>'}).join(''):'<div class="empty">No clients match. New clients appear when you save a booking.</div>';
+  }
+  $('cBody').innerHTML=h;
+}
+function renderR(){
+  var l=upcoming(48);
+  $('rBody').innerHTML=l.length?l.map(function(a){
+    return '<div class="item"><div><b>'+esc(a.client)+'</b><small>'+dayLabel(a)+' '+fmt(a.start)+' · '+esc(a.svc)+' · '+sty(a.stylist).n+'</small><small>'+(a.reminded?'Reminded '+ago(a.reminded):'Not reminded yet')+(a.confirmed?' · Client confirmed':'')+'</small></div><div style="display:grid;gap:6px"><button class="btn'+(a.reminded?'':' primary')+'" data-id="'+a.id+'" data-act="r">'+(a.reminded?'Remind again':'Send reminder')+'</button>'+(a.confirmed?'':'<button class="btn" data-id="'+a.id+'" data-act="c">Mark confirmed</button>')+'</div></div>'}).join(''):'<div class="empty">No booked appointments in the next 48 hours.</div>';
+}
+function updBadge(){var n=upcoming(24).filter(function(a){return !a.reminded}).length;$('remBtn').innerHTML='Reminders'+(n?'<span class="badge">'+n+'</span>':'')}
+var _render=render;render=function(){_render();updBadge()};
+$('sTpl').innerHTML=TPLS.map(function(t){return '<option>'+t+'</option>'}).join('');
+$('sTpl').onchange=function(){$('sMsg').value=tpl($('sTpl').value,sms.a,sms.name);cnt()};
+$('sMsg').oninput=cnt;
+$('sCancel').onclick=function(){$('dlgS').close()};
+$('sCopy').onclick=function(){var b=$('sCopy');try{navigator.clipboard.writeText($('sMsg').value).catch(function(){})}catch(e){}$('sMsg').select();try{document.execCommand('copy')}catch(e){}b.textContent='Copied';setTimeout(function(){b.textContent='Copy'},1500)};
+$('sSend').onclick=function(){
+  var raw=$('sTo').value.trim(),d=raw.replace(/[^\d+]/g,''),msg=$('sMsg').value.trim(),k=$('sTpl').value;
+  if(d.replace(/\D/g,'').length<7){$('sErr').textContent='Enter a valid mobile number.';return}
+  if(!msg){$('sErr').textContent='Write a message first.';return}
+  var a=document.createElement('a');a.href='sms:'+d+'?&body='+encodeURIComponent(msg);document.body.appendChild(a);a.click();a.remove();
+  msgs.unshift({t:Date.now(),client:sms.name,phone:raw,tpl:k,text:msg});
+  if(sms.a&&k==='Reminder'){appts.forEach(function(x){if(x.id===sms.a.id)x.reminded=Date.now()});save()}
+  saveMsgs();$('dlgS').close();render();
+};
+$('clBtn').onclick=function(){selC=null;$('cSearch').value='';renderC();$('dlgC').showModal()};
+$('cSearch').oninput=function(){selC=null;renderC()};
+$('cClose').onclick=function(){$('dlgC').close()};
+$('cBody').onclick=function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.k){selC=b.dataset.k;delArm=false;renderC();return}
+  if(b.id==='cBack'){selC=null;renderC();return}
+  var c=clientList().filter(function(x){return x.key===selC})[0];if(!c)return;
+  if(b.id==='cText')openSms(c.name,c.phone);
+  if(b.id==='cDel'){if(!delArm){delArm=true;renderC();return}delClient(c);delArm=false;selC=null;renderC();render();return}
+  if(b.id==='cBook'){var v=c.visits.slice().sort(function(x,y){return ts(y)-ts(x)})[0];$('dlgC').close();openDlg(null);$('fClient').value=c.name;$('fPhone').value=c.phone||'';if(v)$('fSvc').value=v.svc;updLen()}
+};
+$('remBtn').onclick=function(){renderR();$('dlgR').showModal()};
+$('rClose').onclick=function(){$('dlgR').close()};
+$('rBody').onclick=function(e){var b=e.target.closest('button');if(!b)return;var a=appts.filter(function(x){return x.id===b.dataset.id})[0];if(!a)return;if(b.dataset.act==='c'){a.confirmed=Date.now();save();renderR();render();return}openSms(a.client,a.phone,a,'Reminder')};
+$('bMsg').onclick=function(){var a=appts.filter(function(x){return x.id===editing})[0];if(a)openSms(a.client,a.phone,a)};
+$('cNew').onclick=function(){$('nName').value='';$('nPhone').value='';$('nNotes').value='';$('nErr').textContent='';$('dlgC').close();$('dlgN').showModal();$('nName').focus()};
+$('nCancel').onclick=function(){$('dlgN').close();renderC();$('dlgC').showModal()};
+$('nSave').onclick=function(){
+  var n=$('nName').value.trim(),p=$('nPhone').value.trim(),err='';
+  if(!n)err='Enter the client’s name.';
+  else if(p&&p.replace(/\D/g,'').length<7)err='Enter a valid mobile number, or leave it blank.';
+  else if(clientList().some(function(c){return c.key===ckey({client:n,phone:p})}))err='That client is already in your list.';
+  if(err){$('nErr').textContent=err;return}
+  extras.push({id:uid(),name:n,phone:p,notes:$('nNotes').value.trim()});saveX();
+  selC=ckey({client:n,phone:p});delArm=false;$('dlgN').close();renderC();$('dlgC').showModal();
+};
+$('fClient').onchange=function(){var n=this.value.trim().toLowerCase(),c=clientList().filter(function(x){return x.name.toLowerCase()===n})[0];if(c&&c.phone&&!$('fPhone').value)$('fPhone').value=c.phone};
+var imp=[];
+var INTENT={confirm:'Confirming',cancel:'Cancelling',reschedule:'Wants to reschedule',request:'Booking request',other:'Message'};
+function d7(p){return (p||'').replace(/\D/g,'').slice(-7)}
+function findClient(addr,name){var l=clientList(),k=d7(addr);return l.filter(function(c){return k.length===7&&d7(c.phone)===k})[0]||(name&&l.filter(function(c){return c.name.toLowerCase()===name.toLowerCase()})[0])||null}
+function nextAppt(c){return c?appts.filter(function(a){return ckey(a)===c.key&&a.status==='Booked'&&ts(a)>=Date.now()}).sort(function(x,y){return ts(x)-ts(y)})[0]||null:null}
+function intent(t){t=t.toLowerCase();
+  if(/\b(cancel\w*|can't make|cant make|won't make)/.test(t))return 'cancel';
+  if(/\b(reschedul\w*|different (time|day)|change (the|my) (time|appointment|day)|move (it|my))/.test(t))return 'reschedule';
+  if(/\b(yes|yep|yeah|confirm\w*|see you|sounds good|ok|okay|will be there)\b|👍/.test(t))return 'confirm';
+  if(/\b(book\w*|appointment|available|availability|opening|slot)/.test(t))return 'request';
+  return 'other';
+}
+function parseTexts(txt){
+  var out=[];
+  if(/<sms\b/i.test(txt)){
+    var doc=new DOMParser().parseFromString(txt,'text/xml');
+    Array.prototype.forEach.call(doc.getElementsByTagName('sms'),function(s){
+      if(s.getAttribute('type')!=='1')return;
+      var n=s.getAttribute('contact_name')||'';
+      out.push({addr:s.getAttribute('address')||'',name:n==='(Unknown)'?'':n,t:+s.getAttribute('date')||Date.now(),text:s.getAttribute('body')||''});
+    });
+    return out;
+  }
+  txt.split(/\r?\n/).forEach(function(line){
+    line=line.trim();if(!line)return;
+    var c=line.match(/^"?(\+?[\d\s().-]{7,}\d)"?\s*,\s*"?([^",]*)"?\s*,\s*"?(.*?)"?$/);
+    if(c){out.push({addr:c[1],name:'',t:Date.parse(c[2])||Date.now(),text:c[3]});return}
+    var m=line.match(/^(?:\[?(\d{4}-\d{2}-\d{2}(?:[ T]\d{1,2}:\d{2})?)\]?\s+)?([^:]{2,40}?)\s*:\s*(.+)$/);
+    if(m){
+      var ph=(m[2].match(/\+?\d[\d\s().-]{5,}\d/)||[''])[0],nm=m[2].replace(ph,'').replace(/[()\[\]]/g,'').trim();
+      out.push({addr:ph,name:nm,t:m[1]?(Date.parse(m[1].replace(' ','T'))||Date.now()):Date.now(),text:m[3]});
+    }
+  });
+  return out;
+}
+function doPreview(){
+  $('iErr').textContent='';
+  var seen=msgs.filter(function(m){return m.tpl==='Received'}).map(function(m){return m.t+'|'+m.text});
+  var items=parseTexts($('iText').value).filter(function(x){return x.text.trim()&&seen.indexOf(x.t+'|'+x.text)<0});
+  if(!items.length){imp=[];$('iBody').innerHTML='';$('iErr').textContent='No new messages found. Use one message per line as “number or name: message”, or choose an exported file.';return}
+  imp=items.slice(0,200).map(function(x){
+    var c=findClient(x.addr,x.name),it=intent(x.text),ap=nextAppt(c);
+    return {x:x,c:c,it:it,ap:ap,act:!c?'add':(it==='confirm'&&ap)?'confirm':(it==='cancel'&&ap)?'cancel':'log'};
+  });
+  $('iBody').innerHTML=imp.map(function(r,i){
+    var o=[['skip','Skip']];
+    if(!r.c)o.push(['add','Add client and save text']);
+    else{o.push(['log','Save to history']);if(r.ap){o.push(['confirm','Mark booking confirmed']);o.push(['cancel','Cancel booking (removes it)'])}}
+    var who=r.c?r.c.name:(r.x.name||r.x.addr)+' (new)';
+    return '<div class="item"><div><b>'+esc(who)+'</b><small>'+esc(r.x.text.slice(0,140))+'</small><small>'+INTENT[r.it]+(r.ap?' · next booking '+sd(r.ap.date)+' '+fmt(r.ap.start)+', '+esc(r.ap.svc):'')+'</small></div>'
+      +'<select data-i="'+i+'" style="width:auto">'+o.map(function(p){return '<option value="'+p[0]+'"'+(p[0]===r.act?' selected':'')+'>'+p[1]+'</option>'}).join('')+'</select></div>';
+  }).join('');
+}
+$('impBtn').onclick=function(){$('iText').value='';$('iFile').value='';$('iBody').innerHTML='';$('iErr').textContent='';imp=[];$('dlgI').showModal()};
+$('iClose').onclick=function(){$('dlgI').close()};
+$('iParse').onclick=doPreview;
+$('iFile').onchange=function(){
+  var f=this.files[0];if(!f)return;
+  if(f.size>4000000){$('iErr').textContent='That file is over 4 MB. Export a smaller date range and try again.';return}
+  var r=new FileReader();r.onload=function(){$('iText').value=r.result;doPreview()};r.readAsText(f);
+};
+$('iGo').onclick=function(){
+  var n=0;
+  imp.forEach(function(r,i){
+    var sel=document.querySelector('#iBody select[data-i="'+i+'"]'),a=sel?sel.value:'skip';
+    if(a==='skip')return;
+    var c=r.c;
+    if(a==='add'){c=findClient(r.x.addr,r.x.name);if(!c){var nm=r.x.name||r.x.addr;extras.push({id:uid(),name:nm,phone:r.x.addr||'',notes:'Added from imported texts'});c={name:nm,phone:r.x.addr||''}}}
+    msgs.push({t:r.x.t,client:c.name,phone:c.phone,tpl:'Received',text:r.x.text});n++;
+    if(a==='confirm'&&r.ap)r.ap.confirmed=Date.now();
+    if(a==='cancel'&&r.ap)appts=appts.filter(function(x){return x.id!==r.ap.id});
+  });
+  msgs.sort(function(x,y){return y.t-x.t});
+  save();saveMsgs();saveX();render();imp=[];
+  $('iBody').innerHTML='<div class="empty">Imported '+n+' message'+(n===1?'':'s')+'. Open Clients to see them in each client’s history.</div>';
+};
+fillSelects();load();loadMsgs();render();
+})();
+</script>
+</body>
+</html>
